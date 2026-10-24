@@ -7,6 +7,7 @@ import { newId, r2, docOut } from "../services/common.js";
 import { nextNumber } from "../services/numbering.js";
 import { planReceiptSync } from "../services/receipts.js";
 import { atomically } from "../services/tx.js";
+import { handoverHasPassword } from "../services/handover.js";
 
 const body = z.object({
   type: z.enum(DOC_TYPES, { error: `Type must be one of: ${DOC_TYPES.join(", ")}.` }),
@@ -19,6 +20,11 @@ const body = z.object({
 });
 
 export const documentsRouter = Router();
+
+// A handover must never hold a password, even if the client check is skipped.
+const noPasswords = (b) => {
+  if (b.type === "handover" && handoverHasPassword(b.data)) throw new HttpError(400, "It looks like a password is written in this handover. Remove it and share logins privately.");
+};
 
 documentsRouter.get("/", async (req, res) => {
   const filter = { userId: req.userId };
@@ -57,6 +63,7 @@ async function revertPlan(userId, project) {
 // Without one (a standalone test database), the document goes first and is deleted if the project update fails.
 documentsRouter.post("/", validate(body), async (req, res) => {
   const b = req.body, userId = req.userId;
+  noPasswords(b);
   for (let attempt = 0; attempt < 5; attempt++) {
     const number = await nextNumber(userId, b.type);
     const sp = await planReceipt(userId, b, number);
@@ -84,6 +91,7 @@ documentsRouter.post("/", validate(body), async (req, res) => {
 
 documentsRouter.put("/:id", validate(body), async (req, res) => {
   const b = req.body, userId = req.userId;
+  noPasswords(b);
   const cur = await Document.findOne({ _id: req.params.id, userId }).lean();
   if (!cur) throw new HttpError(404, "Document not found.");
   if (b.type !== cur.type) throw new HttpError(400, "A document's type can't be changed.");

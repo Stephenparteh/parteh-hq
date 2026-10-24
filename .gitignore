@@ -12,3 +12,7 @@ coverage/
 *backup*.json
 Parteh HQ backup*.json
 Projects *.csv
+
+# generated sample documents
+samples/
+client/samples/
