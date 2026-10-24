@@ -1,0 +1,14 @@
+node_modules/
+.env
+.env.*
+!.env.example
+dist/
+build/
+coverage/
+.vercel/
+*.log
+.DS_Store
+# private data: never commit client details
+*backup*.json
+Parteh HQ backup*.json
+Projects *.csv
